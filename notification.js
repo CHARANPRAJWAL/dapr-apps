@@ -5,7 +5,7 @@ const app = express();
 app.get("/notify", async (req, res) => {
   //make call to /user in user service to get user information
   const { data } = await axios.get(
-    "http://user-service:3500/v1.0/invoke/user-service/method/user"
+    "http://srv-captain--user-dapr:3500/v1.0/invoke/user-service/method/user"
   );
   res.send(`Notification send to ${data.name} through email :${data.email}`);
 });
