@@ -1,0 +1,213 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: placement-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: placement
+  template:
+    metadata:
+      labels:
+        app: placement
+    spec:
+      containers:
+        - name: placement
+          image: daprio/dapr
+          command:
+            - "./placement"
+            - "-port"
+            - "50000"
+            - "-log-level"
+            - "debug"
+          ports:
+            - containerPort: 50000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: placement-service
+spec:
+  selector:
+    app: placement
+  ports:
+    - protocol: TCP
+      port: 50000
+      targetPort: 50000
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-service-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-service
+  template:
+    metadata:
+      labels:
+        app: notification-service
+    spec:
+      containers:
+        - name: notification-service
+          image: priyeshnayak/dapr_test_app-notification-service:latest
+          ports:
+            - containerPort: 4002
+            - containerPort: 3502
+          command: ["sh", "-c", "npm run start"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-service-service
+spec:
+  selector:
+    app: notification-service
+  ports:
+    - name: app-port
+      protocol: TCP
+      port: 4002
+      targetPort: 4002
+    - name: dapr-port
+      protocol: TCP
+      port: 3502
+      targetPort: 3502
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+        - name: user-service
+          image: priyeshnayak/dapr_test_app-user-service:latest
+          ports:
+            - containerPort: 4000
+            - containerPort: 3500
+          command: ["sh", "-c", "npm start"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service-service
+spec:
+  selector:
+    app: user-service
+  ports:
+    - name: app-port
+      protocol: TCP
+      port: 4000
+      targetPort: 4000
+    - name: dapr-port
+      protocol: TCP
+      port: 3500
+      targetPort: 3500
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification-dapr-sidecar-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification-dapr-sidecar
+  template:
+    metadata:
+      labels:
+        app: notification-dapr-sidecar
+    spec:
+      containers:
+        - name: notification-dapr-sidecar
+          image: daprio/daprd
+          command:
+            - "./daprd"
+            - "-app-id"
+            - "notification-service"
+            - "-app-port"
+            - "4002"
+            - "--dapr-http-port"
+            - "3502"
+            - "-placement-host-address"
+            - "placement-service:50000"
+            - "-components-path"
+            - "/components"
+          # volumeMounts:
+          #   - name: dapr-components
+          #     mountPath: /components
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: notification-dapr-sidecar-service
+spec:
+  selector:
+    app: notification-dapr-sidecar
+  ports:
+    - protocol: TCP
+      port: 4002
+      targetPort: 4002
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-dapr-sidecar-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: user-dapr-sidecar
+  template:
+    metadata:
+      labels:
+        app: user-dapr-sidecar
+    spec:
+      containers:
+        - name: user-dapr-sidecar
+          image: daprio/daprd
+          command:
+            - "./daprd"
+            - "-app-id"
+            - "user-service"
+            - "-app-port"
+            - "4000"
+            - "--dapr-http-port"
+            - "3500"
+            - "-placement-host-address"
+            - "placement-service:50000"
+            - "-components-path"
+            - "/components"
+          # volumeMounts:
+          #   - name: dapr-components
+          #     mountPath: /components
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-dapr-sidecar-service
+spec:
+  selector:
+    app: user-dapr-sidecar
+  ports:
+    - protocol: TCP
+      port: 4000
+      targetPort: 4000

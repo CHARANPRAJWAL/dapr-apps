@@ -1,0 +1,17 @@
+{
+  "name": "dapr_test_app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "notification.js",
+  "scripts": {
+    "start-user": "node user.js",
+    "start-notification": "node notification.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.5.1",
+    "express": "^4.18.2"
+  }
+}

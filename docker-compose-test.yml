@@ -1,0 +1,78 @@
+version: "3.6"
+services:
+  placement:
+    image: "daprio/dapr"
+    command: ["./placement", "-port", "50000", "-log-level", "debug"]
+    networks:
+      - my-network
+    ports:
+      - "50000:50000"
+
+  notification-service:
+    image: "notify_service:1.0"
+    ports:
+      - 4002:4002
+      - 3502:3502
+    command: sh -c "npm run start-notification"
+    networks:
+      - my-network
+    container_name: notify_service1
+
+  notification-service-dapr:
+    image: "daprio/daprd"
+    network_mode: "service:notification-service"
+    command:
+      [
+        "./daprd",
+        "-app-id",
+        "notification-service",
+        "-app-port",
+        "4002",
+        "--dapr-http-port",
+        "3502",
+        "-placement-host-address",
+        "placement:50000",
+        "-components-path",
+        "/components",
+      ]
+    volumes:
+      - "./components/:/components"
+    depends_on:
+      - notification-service
+    container_name: notify_dapr1
+
+  user-service:
+    image: "user_service:1.0"
+    ports:
+      - 4000:4000
+      - 3500:3500
+    command: sh -c "npm run start-user"
+    networks:
+      - my-network
+    container_name: user_service1
+
+  user-service-dapr:
+    image: "daprio/daprd"
+    network_mode: "service:user-service"
+    command:
+      [
+        "./daprd",
+        "-app-id",
+        "user-service",
+        "-app-port",
+        "4000",
+        "--dapr-http-port",
+        "3500",
+        "-placement-host-address",
+        "placement:50000",
+        "-components-path",
+        "/components",
+      ]
+    volumes:
+      - "./components/:/components"
+    depends_on:
+      - user-service
+    container_name: user_dapr1
+networks:
+  my-network:
+
